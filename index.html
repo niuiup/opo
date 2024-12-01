@@ -1,0 +1,147 @@
+<!DOCTYPE html> 
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контроль доступа и счётчик людей через веб-камеру</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #container {
+            position: relative;
+            margin: 20px;
+        }
+        video {
+            display: none;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+        #status {
+            margin: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h>1Контроль доступа и счётчик людей через веб-камеру</h1>
+    <button id="startButton">Включить камеру</button>
+    <p id="status">Нажмите "Включить камеру" для начала.</p>
+    <div id="container">
+        <video id="video" width="640" height="480" autoplay playsinline></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    <div id="output">
+        <h2>Общее количество обнаружений: <span id="totalCount">0</span></h2>
+        <h2>Последнее обнаружение: <span id="lastDetection">---</span></h2>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('canvas');
+        const totalCountElement = document.getElementById('totalCount');
+        const lastDetectionElement = document.getElementById('lastDetection');
+        const ctx = canvasElement.getContext('2d');
+
+        let totalDetected = 0; // Общий счётчик
+        let personDetected = false; // Флаг, указывающий, был ли человек обнаружен
+
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                videoElement.srcObject = stream;
+                return new Promise((resolve) => {
+                    videoElement.onloadedmetadata = () => {
+                        resolve(videoElement);
+                    };
+                });
+            } catch (error) {
+                console.error("Ошибка при доступе к камере:", error);
+            }
+        }
+
+        function logDetection() {
+            const now = new Date();
+            totalDetected++; // Увеличиваем счётчик
+
+            // Обновление интерфейса
+            totalCountElement.textContent = totalDetected;
+            lastDetectionElement.textContent = `${now.toLocaleDateString()}, ${now.toLocaleTimeString()}`;
+
+            console.log(`Обнаружено: ${totalDetected} | Дата: ${now.toLocaleDateString()}, Время: ${now.toLocaleTimeString()}`);
+        }
+
+        function onResults(results) {
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            const personInFrame = results.poseLandmarks && results.poseLandmarks.length > 0;
+
+            if (personInFrame && !personDetected) {
+                // Если человек появился впервые
+                logDetection();
+                personDetected = true;
+            } else if (!personInFrame && personDetected) {
+                // Если человек ушёл из кадра
+                personDetected = false;
+            }
+
+            if (personInFrame) {
+                for (let i = 0; i < results.poseLandmarks.length / 33; i++) {
+                    drawConnectors(ctx, results.poseLandmarks.slice(i * 33, (i + 1) * 33), POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
+                    drawLandmarks(ctx, results.poseLandmarks.slice(i * 33, (i + 1) * 33), { color: '#FF0000', lineWidth: 2 });
+                }
+            }
+        }
+
+        async function startPoseDetection() {
+            const pose = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            });
+
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            pose.onResults(onResults);
+
+            await setupCamera();
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await pose.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            camera.start();
+        }
+
+        document.getElementById('startButton').addEventListener('click', async () => {
+            document.getElementById('startButton').style.display = 'none';
+            try {
+                await startPoseDetection();
+            } catch (error) {
+                console.error("Ошибка при запуске определения позы:", error);
+            }
+        });
+    </script>
+</body>
+</html>
