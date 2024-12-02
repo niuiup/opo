@@ -10,14 +10,42 @@
     <style>
         body {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            justify-content: center;
             align-items: center;
             font-family: Arial, sans-serif;
             background-color: #f0f0f0;
+            height: 100vh;
+            margin: 0;
+        }
+        #buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-right: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        button:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        #startButton {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        #saveBiometryButton, #confirmBiometryButton {
+            background-color: #007bff;
+            color: white;
         }
         #container {
             position: relative;
-            margin: 20px;
+            margin: 0 20px;
         }
         video {
             display: none;
@@ -26,18 +54,27 @@
             border: 2px solid #333;
             border-radius: 10px;
         }
-        #status {
-            margin: 10px;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 5px;
+        #output {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 20px;
+        }
+        h1 {
+            text-align: center;
+            width: 100%;
+            position: absolute;
+            top: 10px;
         }
     </style>
 </head>
 <body>
-    <h>1Контроль доступа и счётчик людей через веб-камеру</h1>
-    <button id="startButton">Включить камеру</button>
-    <p id="status">Нажмите "Включить камеру" для начала.</p>
+    <h1>Контроль доступа и счётчик людей через веб-камеру</h1>
+    <div id="buttons">
+        <button id="startButton">Включить камеру</button>
+        <button id="saveBiometryButton">Сохранить биометрию</button>
+        <button id="confirmBiometryButton">Подтвердить биометрию</button>
+    </div>
     <div id="container">
         <video id="video" width="640" height="480" autoplay playsinline></video>
         <canvas id="canvas" width="640" height="480"></canvas>
@@ -141,6 +178,14 @@
             } catch (error) {
                 console.error("Ошибка при запуске определения позы:", error);
             }
+        });
+
+        document.getElementById('saveBiometryButton').addEventListener('click', () => {
+            alert('У вас нет доступа');
+        });
+
+        document.getElementById('confirmBiometryButton').addEventListener('click', () => {
+            alert('У вас нет доступа');
         });
     </script>
 </body>
